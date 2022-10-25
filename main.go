@@ -3,12 +3,15 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"math/rand"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
 
+	"github.com/alex-ant/gomath/gaussian-elimination"
+	"github.com/alex-ant/gomath/rational"
 	"github.com/enescakir/emoji"
 	"github.com/maja42/goval"
 )
@@ -39,6 +42,44 @@ func gcd(arg ...string) (res int) {
 	}
 	return
 }
+
+func gauss(num int, reader *bufio.Reader) {
+	equations := make([][]rational.Rational, 0)
+	for i := 0; i < num; i++ {
+		temp, _ := reader.ReadString('\n')
+		temp = strings.TrimSuffix(temp, "\n")
+		x := strings.Fields(temp)
+		equation := make([]rational.Rational, 0)
+		for j := 0; j <= num; j++ {
+			val, _ := strconv.Atoi(x[j])
+			equation = append(equation, rational.New(int64(val), 1))
+		}
+		equations = append(equations, equation)
+	}
+	result, gaussErr := gaussian.SolveGaussian(equations, false)
+	if gaussErr != nil {
+		fmt.Fprintln(os.Stderr, gaussErr)
+	}
+	for _, i := range result {
+		fmt.Print(i[0].GetNumerator(), " ")
+	}
+	fmt.Println()
+}
+func quadratic(reader *bufio.Reader) {
+	var x1, x2 float64
+	equation, _ := reader.ReadString('\n')
+	equation = strings.TrimSuffix(equation, "\n")
+	equationArr := strings.Fields(equation)
+	a, _ := strconv.Atoi(equationArr[0])
+	b, _ := strconv.Atoi(equationArr[1])
+	c, _ := strconv.Atoi(equationArr[2])
+	x1 = (float64(-b) + math.Sqrt(float64(b*b-4*c*a))) / float64(2*a)
+	x2 = (float64(-b) - math.Sqrt(float64(b*b-4*c*a))) / float64(2*a)
+	fmt.Println(x1, x2)
+}
+
+// x^2 + 4x - 4
+// (x - 2)(x + 2)
 func main() {
 	reader := bufio.NewReader(os.Stdin)
 	eval := goval.NewEvaluator()
@@ -87,8 +128,6 @@ func main() {
 				fmt.Fprintln(os.Stderr, err)
 			}
 			fmt.Println(result)
-		case "exit":
-			os.Exit(0)
 		case "cd":
 			if len(cmdArr) == 1 {
 				os.Chdir("/home")
@@ -104,8 +143,6 @@ func main() {
 			os.Chown(cmdArr[1], os.Getegid(), os.Geteuid())
 		case "touch":
 			os.Create(cmdArr[1])
-		case "cat":
-			os.Open(cmdArr[1])
 		case "prime":
 			num, _ := strconv.Atoi(cmdArr[1])
 			if isPrime(num) {
@@ -115,7 +152,15 @@ func main() {
 			}
 		case "gcd":
 			fmt.Println(gcd(cmdArr[1:]...))
+		case "gauss":
+			num, _ := strconv.Atoi(cmdArr[1])
+			gauss(num, reader)
 
+		case "quad":
+			quadratic(reader)
+
+		case "exit":
+			os.Exit(0)
 		default:
 			execCmd := exec.Command(cmdArr[0], cmdArr[1:]...)
 			execCmd.Stderr = os.Stderr
